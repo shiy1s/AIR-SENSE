@@ -151,23 +151,19 @@ def load_dataset():
 # =========================================================
 
 @st.cache_resource
-def load_models():
+def load_model(model_name):
 
-    loaded_models = {}
+    if model_name not in MODEL_FILES:
+        raise ValueError(f"Unknown model: {model_name}")
 
-    for model_name, filename in MODEL_FILES.items():
+    filename = MODEL_FILES[model_name]
+    model_path = MODEL_DIR / filename
 
-        model_path = MODEL_DIR / filename
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model file missing: {filename}")
 
-        if not model_path.exists():
-            raise FileNotFoundError(
-                f"Model file missing: {filename}"
-            )
-
-        with open(model_path, "rb") as file:
-            loaded_models[model_name] = pickle.load(file)
-
-    return loaded_models
+    with open(model_path, "rb") as file:
+        return pickle.load(file)
 
 
 # =========================================================
@@ -176,7 +172,6 @@ def load_models():
 
 try:
     df = load_dataset()
-    models = load_models()
 
 except Exception as error:
 
@@ -405,10 +400,8 @@ elif page == "ML Prediction":
 
     selected_model_name = st.selectbox(
         "Machine Learning Algorithm",
-        list(models.keys())
+        list(MODEL_FILES.keys())
     )
-
-    selected_model = models[selected_model_name]
 
     st.caption(
         f"Selected algorithm: {selected_model_name}"
@@ -501,6 +494,9 @@ elif page == "ML Prediction":
     if predict_button:
 
         try:
+
+            # Load only the selected model to reduce startup memory usage.
+            selected_model = load_model(selected_model_name)
 
             input_data = pd.DataFrame(
                 [[user_values[feature] for feature in FEATURES]],
