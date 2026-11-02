@@ -210,6 +210,21 @@ with st.sidebar:
 
     st.divider()
 
+    st.markdown("### 📍 City Filter")
+
+    available_cities = sorted(
+        df["city_name"].dropna().astype(str).unique().tolist()
+    )
+
+    selected_city = st.selectbox(
+        "Select a city",
+        ["All Cities"] + available_cities,
+        index=0,
+        key="airsense_city_filter"
+    )
+
+    st.divider()
+
     st.markdown("### Project Information")
 
     st.caption("India Air Quality Analysis & Prediction")
@@ -217,6 +232,13 @@ with st.sidebar:
     st.caption("Machine Learning Classification")
 
     st.caption("Models: 4")
+
+
+# Apply the city filter to the dashboard and data-analysis pages.
+if selected_city == "All Cities":
+    filtered_df = df.copy()
+else:
+    filtered_df = df[df["city_name"].astype(str) == selected_city].copy()
 
 
 # =========================================================
@@ -236,7 +258,7 @@ if page == "Dashboard":
     """, unsafe_allow_html=True)
 
     st.markdown(
-        '<div class="section-title">Dataset Overview</div>',
+        f'<div class="section-title">Dataset Overview — {selected_city}</div>',
         unsafe_allow_html=True
     )
 
@@ -244,7 +266,7 @@ if page == "Dashboard":
 
     col1.metric(
         "Total Records",
-        f"{len(df):,}"
+        f"{len(filtered_df):,}"
     )
 
     col2.metric(
@@ -254,12 +276,12 @@ if page == "Dashboard":
 
     col3.metric(
         "Cities Covered",
-        df["city_name"].nunique()
+        filtered_df["city_name"].nunique()
     )
 
     col4.metric(
         "Monitoring Stations",
-        df["station_id"].nunique()
+        filtered_df["station_id"].nunique()
     )
 
     st.divider()
@@ -271,7 +293,7 @@ if page == "Dashboard":
         st.markdown("### 🏙️ City Coverage")
 
         city_counts = (
-            df["city_name"]
+            filtered_df["city_name"]
             .value_counts()
             .head(10)
         )
@@ -285,7 +307,7 @@ if page == "Dashboard":
         pollutants = ["CO", "NH3", "NO2", "Ozone", "PM10", "PM2.5", "SO2"]
 
         pollutant_means = (
-            df[pollutants]
+            filtered_df[pollutants]
             .mean()
             .dropna()
         )
@@ -297,7 +319,7 @@ if page == "Dashboard":
     st.markdown("### 📋 Dataset Preview")
 
     st.dataframe(
-        df.head(10),
+        filtered_df.head(10),
         use_container_width=True
     )
 
@@ -315,15 +337,15 @@ elif page == "Data Analysis":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("### Missing Values")
+    st.markdown(f"### Missing Values — {selected_city}")
 
-    missing = df.isnull().sum()
+    missing = filtered_df.isnull().sum()
 
     missing_df = pd.DataFrame({
         "Column": missing.index,
         "Missing Values": missing.values,
         "Missing Percentage": (
-            missing.values / len(df) * 100
+            missing.values / max(len(filtered_df), 1) * 100
         ).round(2)
     })
 
@@ -334,10 +356,10 @@ elif page == "Data Analysis":
 
     st.divider()
 
-    st.markdown("### Statistical Summary")
+    st.markdown(f"### Statistical Summary — {selected_city}")
 
     st.dataframe(
-        df.describe().round(2),
+        filtered_df.describe().round(2),
         use_container_width=True
     )
 
@@ -350,7 +372,7 @@ elif page == "Data Analysis":
         ["CO", "NH3", "NO2", "Ozone", "PM10", "PM2.5", "SO2"]
     )
 
-    chart_data = df[pollutant].dropna()
+    chart_data = filtered_df[pollutant].dropna()
 
     st.bar_chart(
         chart_data.value_counts(
